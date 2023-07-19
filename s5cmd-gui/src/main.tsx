@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Chonky, ChonkyIconFA, setChonkyDefaults } from 'chonky';
-import { S3Browser } from './components/S3Browser';
-import { BucketConfig } from './components/BucketConfig';
-import { SecretConfig } from './components/SecretConfig';
+import { setChonkyDefaults } from '@aperturerobotics/chonky';
+import { ChonkyIconFA } from '@aperturerobotics/chonky-icon-fontawesome';
+import S3Browser  from './components/S3Browser';
+import BucketConfig from './components/BucketConfig';
+import SecretConfig from './components/SecretConfig';
 
 // We set Chonky defaults for FontAwesome icon pack.
 setChonkyDefaults({ iconComponent: ChonkyIconFA });

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FileBrowser, ChonkyIconFA, useFileBrowser, FileAction } from 'chonky';
-import { ChonkyActions } from 'chonky/lib/types/action-map';
-import { FileArray, FileData } from 'chonky/lib/types/files';
-import { runS5cmd, removeS3Object, moveS3Object, copyS3Objects } from '../../tauri/api';
+import { FileBrowser, FileArray, FileData, ChonkyActions, FileAction } from '@aperturerobotics/chonky';
+import { runS5cmd, removeS3Object, moveS3Object, copyS3Objects } from '../api';
 import { Secret, Bucket } from '../../types';
 
 interface S3BrowserProps {
@@ -95,8 +93,6 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                 files={files}
                 folderChain={[{ id: '/', name: 'Root' }]}
                 onFileAction={handleAction}
-                fileActions={ChonkyActions}
-                icons={ChonkyIconFA}
             />
         </div>
     );
