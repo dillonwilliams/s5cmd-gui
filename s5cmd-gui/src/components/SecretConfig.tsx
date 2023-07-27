@@ -39,26 +39,33 @@ const SecretModal: React.FC<SecretModalProps> = ({setVisible}) => {
   };
 
   const handleAddSecret = () => {
-    setSecrets([...secrets, newSecret]);
-    setNewSecret({ nickname: "", accessKeyId: "", secretAccessKey: "" });
+    if (newSecret.nickname && newSecret.accessKeyId && newSecret.secretAccessKey) {
+      setSecrets([...secrets, newSecret]);
+      setNewSecret({ nickname: "", accessKeyId: "", secretAccessKey: "" });
+    }
   };
 
   return (
-    <>
-      <div>
+    <dialog>
+      <table className="secrets__table">
+        {secrets.length > 0 && (<tr>
+          <th>Nickname</th>
+          <th>Access key ID</th>
+          <th />
+        </tr>)
+        }
         {secrets.map((secret: Secret) => (
-          <div key={secret.accessKeyId}>
-            <span>{secret.nickname} </span>
-            <span>{secret.accessKeyId} </span>
-            <span>************</span>
-            <span className="delete-secret">
+          <tr key={secret.accessKeyId}>
+            <td>{secret.nickname} </td>
+            <td>{secret.accessKeyId} </td>
+            <td className="delete-secret">
               <button onClick={() => handleDeleteSecret(secret.accessKeyId)}>
-                Delete Secret
+              × Forget
               </button>
-            </span>
-          </div>
+            </td>
+          </tr>
         ))}
-      </div>
+      </table>
       <input
         type="text"
         name="accessKeyId"
@@ -83,11 +90,11 @@ const SecretModal: React.FC<SecretModalProps> = ({setVisible}) => {
         onChange={handleInputChange}
         value={newSecret.nickname}
       />
-      <button onClick={handleAddSecret}>Save Secret</button>
+      <button onClick={handleAddSecret}>Save new secret</button>
       <button onClick={() => setVisible(false)}>
           Close
         </button>
-    </>
+    </dialog>
   );
 };
 
@@ -116,6 +123,7 @@ const SecretConfig: React.FC<SecretConfigProps> = ({ updateSecret }) => {
     }
   }, [selectedSecret, updateSecret]);
 
+  // TODO not handling if selected secret is deleted....
   return (
     <div>
       <label htmlFor="secret-select">Select Secret:</label>

@@ -7,6 +7,8 @@ import BucketConfig from './components/BucketConfig';
 import SecretConfig from './components/SecretConfig';
 import {Bucket, Secret} from './types';
 import { setSecret } from './api';
+import "./styles.css";
+
 
 // We set Chonky defaults for FontAwesome icon pack.
 setChonkyDefaults({ iconComponent: ChonkyIconFA });
