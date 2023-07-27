@@ -1,27 +1,37 @@
 import { invoke } from '@tauri-apps/api/tauri';
-import { Command } from 's5cmd';
+import { ListResults } from './types';
 
-// Function to run s5cmd commands
-export async function runS5cmd(command: Command) {
-  return invoke('run_s5cmd', command);
+
+export async function runS5cmd(command: string, args: string[]): Promise<any> {
+  return invoke('run_s5cmd', {command: command, args: args});
 }
 
-// Function to remove an S3 object using s5cmd rm
+export async function runS5cmdRun(commands: string[]) {
+  // the rust backend creates the run txt file from the args list?
+  return invoke('run_s5cmd_run', {command: 'run', args: commands});
+}
+
+export async function setSecret(accessKeyId: string, secretAccessKey: string) {
+  return invoke('set_s3_secret', {accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
+}
+
 export async function removeS3Object(path: string) {
-  return runS5cmd({ name: 'rm', args: [path] });
+  return runS5cmd('rm', [path]);
 }
 
-// Function to move an S3 object using s5cmd mv
 export async function moveS3Object(source: string, destination: string) {
-  return runS5cmd({ name: 'mv', args: [source, destination] });
+  return runS5cmd('mv', [source, destination]);
 }
 
-// Function to copy S3 objects using s5cmd cp
+export async function listS3Objects(bucket: string, path: string): Promise<ListResults> {
+  return runS5cmd('ls', [bucket, path]);
+}
+
 export async function copyS3Objects(source: string, destination: string) {
-  return runS5cmd({ name: 'cp', args: [source, destination] });
+  return runS5cmd('cp', [source, destination]);
 }
 
 // Function to run a list of s5cmd commands
-export async function runS5cmdList(commands: Command[]) {
-  return invoke('run_s5cmd_list', commands);
+export async function runS5cmdList(commands: string[]) {
+  return runS5cmdRun(commands);
 }
