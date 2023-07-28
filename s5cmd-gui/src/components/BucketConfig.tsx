@@ -9,15 +9,15 @@ interface BucketConfigProps {
   selectedSecret: Secret | null;
 }
 
-// Define the BucketConfig component
 const BucketConfig: React.FC<BucketConfigProps> = ({ updateBucket, selectedSecret }) => {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [selectedBucket, setSelectedBucket] = useState<string>('');
 
-  // Function to fetch buckets from S3 using s5cmd
   const fetchBuckets = async () => {
     const rawBucketsData = await runS5cmd('ls', []);
     // deal with s5cmd's invalid JSON here
+    console.log('fetched BUCKETS')
+    console.log(rawBucketsData);
 
     const bucketResults = fixJsonData(rawBucketsData)
     const buckets = bucketResults.map((r: any) => ({name: r.name}));
@@ -25,8 +25,8 @@ const BucketConfig: React.FC<BucketConfigProps> = ({ updateBucket, selectedSecre
     setBuckets(buckets);
   }
 
-  // Effect to fetch buckets when the component mounts
   useEffect(() => {
+    console.log('Preparing to fetch buckets');
     if (selectedSecret) {
       setSecret(selectedSecret.accessKeyId, selectedSecret.secretAccessKey);
       fetchBuckets();
@@ -42,7 +42,7 @@ const BucketConfig: React.FC<BucketConfigProps> = ({ updateBucket, selectedSecre
 
   return (
     <div>
-      <label htmlFor="bucket-select">Bucket:</label>
+      <label htmlFor="bucket-select">Bucket:&nbsp;</label>
       <select id="bucket-select" value={selectedBucket} onChange={handleBucketChange}>
         {buckets.map(bucket => (
           <option key={bucket.name} value={bucket.name}>{bucket.name}</option>

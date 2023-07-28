@@ -126,16 +126,16 @@ const SecretConfig: React.FC<SecretConfigProps> = ({ updateSecret }) => {
   // TODO not handling if selected secret is deleted....
   return (
     <div>
-      <label htmlFor="secret-select">Select Secret:</label>
+      <label htmlFor="secret-select">Secret:&nbsp;</label>
       <select id="secret-select" onChange={handleSelectSecret}>
+        <option value="" disabled selected>Select a secret</option>
         {storedSecrets.map((secret: Secret) => (
           <option key={secret.accessKeyId} value={secret.accessKeyId}>
             {secret.nickname}
           </option>
         ))}
       </select>
-      <span onClick={() => setModalVisible(true)}>
-      ⚙</span>
+      <span className="secrets__settings" onClick={() => setModalVisible(true)}>&nbsp;⚙</span>
       {modalVisible &&
         <SecretModal setVisible={setModalVisible} />
       }

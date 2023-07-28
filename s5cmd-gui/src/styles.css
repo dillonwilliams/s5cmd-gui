@@ -58,6 +58,11 @@ button {
   outline: none;
 }
 
+select {
+  font-size: 14px;
+  border: 1px solid #007BFF;
+}
+
 dialog {
   font-size: 12px; 
   background: white;
@@ -98,4 +103,8 @@ dialog {
 
 .secrets__table tr:last-child td {
   border-bottom: 1px solid #ddd;
+}
+
+.secrets__settings {
+  font-size: 20px;
 }

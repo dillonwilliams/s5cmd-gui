@@ -6,7 +6,6 @@ import S3Browser  from './components/S3Browser';
 import BucketConfig from './components/BucketConfig';
 import SecretConfig from './components/SecretConfig';
 import {Bucket, Secret} from './types';
-import { setSecret } from './api';
 import "./styles.css";
 
 
@@ -35,8 +34,10 @@ const App: React.FC = () => {
 
   return (
     <div>
-      <SecretConfig updateSecret={updateSecret} />
-      <BucketConfig updateBucket={updateBucket} selectedSecret={selectedSecret} />
+      <div className="config">
+        <SecretConfig updateSecret={updateSecret} />
+        <BucketConfig updateBucket={updateBucket} selectedSecret={selectedSecret} />
+      </div>
       {selectedBucket && selectedSecret && (
         <S3Browser bucket={selectedBucket} secret={selectedSecret} />
       )}

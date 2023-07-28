@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { FileBrowser, FileList, FileArray, FileToolbar, FileData, ChonkyActions, ChonkyFileActionData } from '@aperturerobotics/chonky';
-import { runS5cmd, removeS3Object, /*moveS3Object, copyS3Objects*/ } from '../api';
+import { runS5cmd, removeS3Object, downloadS3Objects, /*moveS3Object, copyS3Objects*/ } from '../api';
 import { Secret, Bucket, ListResults } from '../types';
 import { fixJsonData } from '../utils';
+import { open } from '@tauri-apps/api/dialog';
+import path from 'path-browserify';
+
 
 interface S3BrowserProps {
     secret: Secret,
@@ -11,7 +14,7 @@ interface S3BrowserProps {
 
 const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
     const [files, setFiles] = useState<FileArray>([]);
-    //const [ selectedFiles, setSelectedFiles, fileMap ] = useFileBrowser(files, {});
+    const [folderPrefix, setKeyPrefix] = useState<string>('/');
     // TODO copy FolderChain / FolderPrefix stuff from https://github.com/TimboKZ/chonky-website/blob/master/2.x_storybook/src/demos/S3Browser.tsx
 
     useEffect(() => {
@@ -37,6 +40,36 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
         }
     }, [secret, bucket]);
 
+    const folderChain = React.useMemo(() => {
+        let folderChain: FileArray;
+        if (folderPrefix === '/') {
+            folderChain = [];
+        } else {
+            let currentPrefix = '';
+            folderChain = folderPrefix
+                .replace(/\/*$/, '')
+                .split('/')
+                .map(
+                    (prefixPart): FileData => {
+                        currentPrefix = currentPrefix
+                            ? path.join(currentPrefix, prefixPart)
+                            : prefixPart;
+                        return {
+                            id: currentPrefix,
+                            name: prefixPart,
+                            isDir: true,
+                        };
+                    }
+                );
+        }
+        folderChain.unshift({
+            id: '/',
+            name: bucket.name,
+            isDir: true,
+        });
+        return folderChain;
+    }, [folderPrefix]);
+
     const handleAction = (action: ChonkyFileActionData) => {
         const selectedFiles = action.state.selectedFiles;
         switch (action.id) {
@@ -48,6 +81,42 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                         const newFiles = files.filter(file => file && !selectedFiles.includes(file));
                         setFiles(newFiles);
                     });
+                break;
+            case ChonkyActions.EndDragNDrop.id:
+                console.log(action);
+                break;
+            case ChonkyActions.DownloadFiles.id:
+                const downloadFiles = async () => {
+                    const filePath = await open({
+                        directory: true,
+                        multiple: false,
+                    });
+                    if (filePath && typeof filePath === 'string') {
+                        downloadS3Objects(selectedFiles, filePath);
+                    }
+                };
+                downloadFiles();
+                break;
+            case ChonkyActions.UploadFiles.id:
+                const uploadFiles = async () => {
+                    const filePaths = await open({
+                        directory: false,
+                        multiple: true,
+                    });
+                    if (filePaths) {
+                        //uploadS3Objects(filePaths, bucket.name)
+                    }
+                };
+                uploadFiles();
+                //refreshBucket();
+                break;
+            case ChonkyActions.OpenFiles.id:
+                if (action.payload.files && action.payload.files.length !== 1) return;
+                if (!action.payload.targetFile || !action.payload.targetFile.isDir) return;
+
+                const newPrefix = `${action.payload.targetFile.id.replace(/\/*$/, '')}/`;
+                console.log(`Key prefix: ${newPrefix}`);
+                setKeyPrefix(newPrefix);
                 break;
             // case ChonkyActions.MoveFiles.id:
             //     const destDir = action.payload.destination;
@@ -97,14 +166,22 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
     const myFileActions = [
         ChonkyActions.DeleteFiles,
         ChonkyActions.DownloadFiles,
+        ChonkyActions.UploadFiles,
+    ];
+
+    const actionsToDisable: string[] = [
+        ChonkyActions.SelectAllFiles.id,
+        ChonkyActions.OpenSelection.id,
+        ChonkyActions.ToggleHiddenFiles.id,
     ];
     return (
         <div id="s3-browser">
             <FileBrowser
                 files={files}
-                folderChain={[{ id: '/', name: 'Root' }]}
+                folderChain={folderChain}
                 onFileAction={handleAction}
                 fileActions={myFileActions}
+                disableDefaultFileActions={actionsToDisable}
             >
                 <FileToolbar />
                 <FileList />
