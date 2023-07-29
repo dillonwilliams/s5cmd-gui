@@ -106,5 +106,11 @@ dialog {
 }
 
 .secrets__settings {
-  font-size: 20px;
+  font-size: 22px;
+  cursor: pointer;
+  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.324);
+}
+
+#s3-browser {
+  height: 90vh;
 }
