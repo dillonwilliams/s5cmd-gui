@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FileBrowser, FileList, FileArray, FileToolbar, FileData, ChonkyActions, ChonkyFileActionData } from '@aperturerobotics/chonky';
-import { runS5cmd, removeS3Object, downloadS3Objects, /*moveS3Object, copyS3Objects*/ } from '../api';
+import { FileBrowser, FileList, FileArray, FileToolbar, FileData, ChonkyActions, ChonkyFileActionData, FileNavbar } from '@aperturerobotics/chonky';
+import { runS5cmd, removeS3Object, downloadS3Objects, uploadS3Objects, /*moveS3Object, copyS3Objects*/ } from '../api';
 import { Secret, Bucket, ListResults } from '../types';
 import { fixJsonData } from '../utils';
 import { open } from '@tauri-apps/api/dialog';
@@ -13,49 +13,32 @@ interface S3BrowserProps {
 }
 
 const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
+    const BUCKET_PREFIX = `s3://${bucket.name}`;
     const [files, setFiles] = useState<FileArray>([]);
-    const [folderPrefix, setKeyPrefix] = useState<string>('/');
-    // TODO copy FolderChain / FolderPrefix stuff from https://github.com/TimboKZ/chonky-website/blob/master/2.x_storybook/src/demos/S3Browser.tsx
+    const [folderPrefix, setKeyPrefix] = useState<string>(BUCKET_PREFIX);
+    const [refreshBucket, setRefreshBucket] = useState<boolean>(false);
 
     useEffect(() => {
-        // Fetch bucket content when secret or bucket changes
-        if (secret && bucket) {
-            runS5cmd('ls', [`s3://${bucket.name}`])
-                .then((rawResults: string) => {
-                    const results: ListResults = fixJsonData(rawResults);
-                    const files = results.map(result => {
-
-                        let fileData: FileData = {
-                            id: result.key,
-                            name: result.key,
-                            isDir: false,
-                            modDate: result.last_modified,
-                            size: result.size,
-                        };
-                        return fileData;
-                    });
-                    console.log(files);
-                    setFiles(files);
-                });
-        }
-    }, [secret, bucket]);
+        setKeyPrefix(BUCKET_PREFIX);
+    }, [bucket]);
 
     const folderChain = React.useMemo(() => {
         let folderChain: FileArray;
-        if (folderPrefix === '/') {
+        if (folderPrefix === BUCKET_PREFIX) {
             folderChain = [];
         } else {
             let currentPrefix = '';
-            folderChain = folderPrefix
-                .replace(/\/*$/, '')
-                .split('/')
+            const folderChainItems = folderPrefix.replace(BUCKET_PREFIX, '').split('/').filter(s => s !== '');
+        
+            console.log(`folderChainItems: ${JSON.stringify(folderChainItems)}`);
+            folderChain = folderChainItems
                 .map(
                     (prefixPart): FileData => {
                         currentPrefix = currentPrefix
                             ? path.join(currentPrefix, prefixPart)
                             : prefixPart;
                         return {
-                            id: currentPrefix,
+                            id: path.join(BUCKET_PREFIX, currentPrefix),
                             name: prefixPart,
                             isDir: true,
                         };
@@ -63,24 +46,56 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                 );
         }
         folderChain.unshift({
-            id: '/',
+            id: BUCKET_PREFIX,
             name: bucket.name,
             isDir: true,
         });
+        console.log(`folderChain: ${JSON.stringify(folderChain)}`)
         return folderChain;
-    }, [folderPrefix]);
+    }, [folderPrefix, bucket]);
+
+
+    useEffect(() => {
+        // Fetch bucket content when secret or bucket changes
+        if (secret && bucket) {
+            runS5cmd('ls', [folderPrefix])
+                .then((rawResults: string) => {
+                    const results: ListResults = fixJsonData(rawResults);
+                    const files = results.map(result => {
+                        const strippedName = result.key.replace(`s3://${bucket.name}/`, '');
+                        let fileData: FileData = {
+                            id: result.key,
+                            name: strippedName,
+                            isDir: result.type === 'directory',
+                            modDate: result.last_modified,
+                            size: result.size,
+                        };
+                        return fileData;
+                    });
+                    setFiles(files);
+                });
+        }
+    }, [secret, bucket, folderPrefix, refreshBucket]);
 
     const handleAction = (action: ChonkyFileActionData) => {
         const selectedFiles = action.state.selectedFiles;
         switch (action.id) {
+            case ChonkyActions.OpenFiles.id:
+                if (action.payload.files && action.payload.files.length !== 1)
+                    return;
+                if (!action.payload.targetFile || !action.payload.targetFile.isDir)
+                    return;
+
+                const newPrefix = action.payload.targetFile.id;
+                setKeyPrefix(newPrefix);
+                break;
             case ChonkyActions.DeleteFiles.id:
-                removeS3Object(selectedFiles[0].name)
-                    //removeS3Object(selectedFiles)
-                    .then(() => {
-                        // refetch the bucket contents:
-                        const newFiles = files.filter(file => file && !selectedFiles.includes(file));
-                        setFiles(newFiles);
-                    });
+                removeS3Object(selectedFiles[0])
+                // TODO handle multiple files
+                //removeS3Object(selectedFiles)
+                .then(() => {
+                    setRefreshBucket(!refreshBucket);
+                });
                 break;
             case ChonkyActions.EndDragNDrop.id:
                 console.log(action);
@@ -88,6 +103,7 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
             case ChonkyActions.DownloadFiles.id:
                 const downloadFiles = async () => {
                     const filePath = await open({
+                        title: 'Choose download directory',
                         directory: true,
                         multiple: false,
                     });
@@ -100,24 +116,22 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
             case ChonkyActions.UploadFiles.id:
                 const uploadFiles = async () => {
                     const filePaths = await open({
+                        title: 'Upload files',
                         directory: false,
                         multiple: true,
                     });
-                    if (filePaths) {
-                        //uploadS3Objects(filePaths, bucket.name)
+                    console.log(`filePaths: ${filePaths}`); 
+                    if (filePaths && Array.isArray(filePaths)) {
+                        uploadS3Objects(filePaths, folderPrefix);
+                    } else if (filePaths && typeof filePaths === 'string') {
+                        uploadS3Objects([filePaths], folderPrefix);
                     }
                 };
-                uploadFiles();
-                //refreshBucket();
+                uploadFiles().then(() => {
+                    setRefreshBucket(!refreshBucket);
+                });
                 break;
-            case ChonkyActions.OpenFiles.id:
-                if (action.payload.files && action.payload.files.length !== 1) return;
-                if (!action.payload.targetFile || !action.payload.targetFile.isDir) return;
 
-                const newPrefix = `${action.payload.targetFile.id.replace(/\/*$/, '')}/`;
-                console.log(`Key prefix: ${newPrefix}`);
-                setKeyPrefix(newPrefix);
-                break;
             // case ChonkyActions.MoveFiles.id:
             //     const destDir = action.payload.destination;
             //     moveS3Object(selectedFiles, destDir)
@@ -183,6 +197,7 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                 fileActions={myFileActions}
                 disableDefaultFileActions={actionsToDisable}
             >
+                <FileNavbar />
                 <FileToolbar />
                 <FileList />
             </FileBrowser>

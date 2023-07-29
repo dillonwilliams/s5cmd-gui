@@ -16,8 +16,11 @@ export async function setSecret(accessKeyId: string, secretAccessKey: string) {
   return invoke('set_s3_secret', {accessKeyId: accessKeyId, secretAccessKey: secretAccessKey});
 }
 
-export async function removeS3Object(path: string) {
-  return runS5cmd('rm', [path]);
+export async function removeS3Object(path: FileData) {
+  if (path.isDir) {
+    return runS5cmd('rm', [path.id + '*']);
+  }
+  return runS5cmd('rm', [path.id]);
 }
 
 export async function moveS3Object(source: string, destination: string) {
@@ -32,12 +35,18 @@ export async function downloadS3Objects(sources: FileData[], destination: string
   let commands: string[] = [];
   for (let source of sources) {
     if (source.isDir) {
-      console.log(source);
-      console.log('SKIPPING DIR BECAUSE IT IS NOT SUPPORTED YET');
-      //commands.push(`cp ${source.name} ${destination}/${dirBaseName}`);
+      commands.push(`cp ${source.id}* ${destination}/${source.name}`);
     } else {
-      commands.push(`cp ${source.name} ${destination}`);
+      commands.push(`cp ${source.id} ${destination}`);
     }
+  }
+  return runS5cmdRun(commands);
+}
+
+export async function uploadS3Objects(sources: string[], s3Destination: string) {
+  let commands: string[] = [];
+  for (let source of sources) {
+    commands.push(`cp ${source} ${s3Destination}`);
   }
   return runS5cmdRun(commands);
 }
