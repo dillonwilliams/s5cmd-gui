@@ -8,14 +8,19 @@
   },
   "package": {
     "productName": "s5cmd-gui",
-    "version": "0.0.0"
+    "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
       "all": false,
       "shell": {
         "all": false,
-        "open": true
+        "open": true,
+        "execute": true,
+          "sidecar": true,
+          "scope": [
+            { "name": "binaries/2.1.0/s5cmd", "sidecar": true }
+          ] 
       },
       "dialog": {
         "open": true,
@@ -25,7 +30,9 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.tauri.s5cmd-gui",
+      "category": "Utility",
+      "externalBin": ["binaries/2.1.0/s5cmd"],
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",

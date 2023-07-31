@@ -2,7 +2,7 @@ use std::env;
 use std::io::Write;
 use tempfile::tempdir;
 use std::fs::File;
-
+use tauri::api::process::Command;
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 //#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -17,7 +17,7 @@ fn set_s3_secret(access_key_id: String, secret_access_key: String) -> () {
 fn run_s5cmd_run(commands: Vec<String>) ->
 
 Result<String, String> {
-  use std::process::Command;
+  //use std::process::Command;
   let dir = tempdir().unwrap();
 
   let file_path = dir.path().join("s5cmdrun.txt");
@@ -26,44 +26,53 @@ Result<String, String> {
   for command in commands {
     writeln!(file, "{}", command).unwrap();
   }
-
+  let args: Vec<String> = vec!["--json".to_string(), "run".to_string(), file_path.clone().to_str().unwrap().to_string()];
   let output = Command::new("s5cmd")
-    .arg("--json")
-    .arg("run")
-    .arg(file_path.clone())
+    .args(args)
+    // .arg("--json")
+    // .arg("run")
+    // .arg(file_path.clone())
     .output()
     .expect("Failed to execute s5cmd");
 
-  println!("{}", output.status);
-  println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-  println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+  println!("{:?}", output.status);
+  println!("stdout: {}", output.stdout);
+  println!("stderr: {}", (&output.stderr));
   if output.status.success() {
-    Ok(String::from_utf8_lossy(&output.stderr).into_owned())
-    //String::from_utf8_lossy(&output.stdout).into_owned()
+    Ok(output.stdout)
   } else {
     //String::from_utf8_lossy(&output.stderr).into_owned()
-    Err(String::from_utf8_lossy(&output.stderr).into_owned())
+    Err(output.stderr)
   }
 }
 
 #[tauri::command]
 fn run_s5cmd(command: String, args: Vec<String>) -> String {
-  use std::process::Command;
+  //use std::process::Command;
+  let mut all_args = args.clone();
+  all_args.insert(0, command.clone());
+  all_args.insert(0, "--json".to_string());
+
+  let (mut rx, mut child) = Command::new_sidecar("s5cmd")
+  .expect("failed to create `my-sidecar` binary command")
+  .spawn()
+  .expect("Failed to spawn sidecar");
+
 
   let output = Command::new("s5cmd")
-    .arg("--json")
-    .arg(command)
-    .args(args)
+    //.arg("--json")
+    //.arg(command)
+    .args(all_args)
     .output()
     .expect("Failed to execute s5cmd");
 
-  println!("{}", output.status);
-  println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-  println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+  println!("{:?}", output.status);
+  println!("stdout: {}", &output.stdout);
+  println!("stderr: {}", &output.stderr);
   if output.status.success() {
-    String::from_utf8_lossy(&output.stdout).into_owned()
+    output.stdout
   } else {
-    String::from_utf8_lossy(&output.stderr).into_owned()
+    output.stderr
   }
 }
 
