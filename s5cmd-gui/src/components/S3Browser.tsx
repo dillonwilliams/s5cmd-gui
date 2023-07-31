@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileBrowser, FileList, FileArray, FileToolbar, FileData, ChonkyActions, ChonkyFileActionData, FileNavbar } from '@aperturerobotics/chonky';
+import { FileBrowser, FileList, FileArray, FileToolbar, FileData, ChonkyActions, ChonkyFileActionData, FileNavbar, defineFileAction, ChonkyIconName, FileAction, ChonkyActionUnion } from '@aperturerobotics/chonky';
 import { runS5cmd, removeS3Object, downloadS3Objects, uploadS3Objects, /*moveS3Object, copyS3Objects*/ } from '../api';
 import { Secret, Bucket, ListResults } from '../types';
 import { fixJsonData } from '../utils';
@@ -14,6 +14,8 @@ interface S3BrowserProps {
 
 const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
     const BUCKET_PREFIX = `s3://${bucket.name}`;
+    const uploadDirsActionName = 'upload_dirs' as ChonkyActionUnion["id"];
+
     const [files, setFiles] = useState<FileArray>([]);
     const [folderPrefix, setKeyPrefix] = useState<string>(BUCKET_PREFIX);
     const [refreshBucket, setRefreshBucket] = useState<boolean>(false);
@@ -23,6 +25,7 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
     }, [bucket]);
 
     const folderChain = React.useMemo(() => {
+        // these are the "breadcrumbs" in FileNavbar
         let folderChain: FileArray;
         if (folderPrefix === BUCKET_PREFIX) {
             folderChain = [];
@@ -114,10 +117,11 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                 downloadFiles();
                 break;
             case ChonkyActions.UploadFiles.id:
+            case uploadDirsActionName:
                 const uploadFiles = async () => {
                     const filePaths = await open({
                         title: 'Upload files',
-                        directory: false,
+                        directory: action.id === uploadDirsActionName ? true : false,
                         multiple: true,
                     });
                     console.log(`filePaths: ${filePaths}`); 
@@ -177,12 +181,23 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
         }
     };
 
+
+
+    const customUploadDirs: FileAction = defineFileAction({
+        id: uploadDirsActionName,
+        button: {
+            name: 'Upload folders',
+            toolbar: true,
+            icon: ChonkyIconName.upload,
+        },
+    });
+
     const myFileActions = [
         ChonkyActions.DeleteFiles,
         ChonkyActions.DownloadFiles,
         ChonkyActions.UploadFiles,
+        customUploadDirs
     ];
-
     const actionsToDisable: string[] = [
         ChonkyActions.SelectAllFiles.id,
         ChonkyActions.OpenSelection.id,
