@@ -1,7 +1,10 @@
-# Tauri + React + Typescript
+# s5cmd-gui: GUI wrapper for s5cmd
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+[s5cmd](https://github.com/peak/s5cmd) is a very fast tool for interacting with S3 (especially when uploading or downloading many small files), but it is CLI only. The goal of this repo is to provide a friendly desktop interface to `s5cmd`. 
 
-## Recommended IDE Setup
+This repo is a work-in-progress - it does *not* currently bundle `s5cmd`. On Mac, even if the Tauri DMG is trusted, the bundled `s5cmd` also has to be trusted, which seems to mean an integrated DMG will need a signing key to work.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Other TODOs
+- Logging, progress bars
+- E2E tests
+- tauri-action for build / packaging
