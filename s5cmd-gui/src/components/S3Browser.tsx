@@ -41,7 +41,7 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                             ? path.join(currentPrefix, prefixPart)
                             : prefixPart;
                         return {
-                            id: path.join(BUCKET_PREFIX, currentPrefix),
+                            id: `${BUCKET_PREFIX}/${currentPrefix}`,
                             name: prefixPart,
                             isDir: true,
                         };
@@ -135,49 +135,6 @@ const S3Browser: React.FC<S3BrowserProps> = ({ secret, bucket }) => {
                     setRefreshBucket(!refreshBucket);
                 });
                 break;
-
-            // case ChonkyActions.MoveFiles.id:
-            //     const destDir = action.payload.destination;
-            //     moveS3Object(selectedFiles, destDir)
-            //         .then(() => {
-            //             const newFiles = files.map(file => {
-            //                 if (selectedFiles.includes(file)) {
-            //                     return new FileData({ ...file, parent: destDir });
-            //                 }
-            //                 return file;
-            //             });
-            //             setFiles(newFiles);
-            //         });
-            //     break;
-            // Handle Chonky drag-and-drop
-            // case ChonkyActions.DragNDrop.id:
-            //     const sourceFiles = selectedFiles;
-            //     const targetDir = action.payload.target;
-            //     if (sourceFiles.length > 1 || fileMap[sourceFiles[0]].isDir) {
-            //         // Use s5cmd run for directories and multiple files
-            //         copyS3Objects(sourceFiles, targetDir, secret, bucket)
-            //             .then(() => {
-            //                 const newFiles = [...files];
-            //                 sourceFiles.forEach(fileId => {
-            //                     const file = newFiles.find(file => file.id === fileId);
-            //                     if (file) {
-            //                         file.parent = targetDir;
-            //                     }
-            //                 });
-            //                 setFiles(newFiles);
-            //             });
-            //     } else {
-            //         // Use s5cmd cp for single files
-            //         moveS3Object(sourceFiles[0], targetDir, secret, bucket)
-            //             .then(() => {
-            //                 const file = files.find(file => file.id === sourceFiles[0]);
-            //                 if (file) {
-            //                     file.parent = targetDir;
-            //                 }
-            //                 setFiles([...files]);
-            //             });
-            //     }
-            //     break;
         }
     };
 
