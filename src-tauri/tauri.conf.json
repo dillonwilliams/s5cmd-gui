@@ -1,4 +1,5 @@
 {
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -7,43 +8,102 @@
     "withGlobalTauri": false
   },
   "package": {
-    "productName": "s5cmd-gui",
-    "version": "0.0.0"
+    "productName": "S5cmd GUI",
+    "version": "1.0.0"
   },
   "tauri": {
     "allowlist": {
       "all": false,
       "shell": {
         "all": false,
-        "open": true
+        "open": true,
+        "execute": true,
+        "sidecar": true,
+        "scope": [
+          {
+            "name": "s5cmd",
+            "cmd": "s5cmd",
+            "args": true
+          }
+        ]
       },
       "dialog": {
+        "all": true,
         "open": true,
-        "save": true
+        "save": true,
+        "message": true,
+        "ask": true,
+        "confirm": true
+      },
+      "fs": {
+        "all": true,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "createDir": true,
+        "removeDir": true,
+        "removeFile": true,
+        "exists": true,
+        "scope": ["$HOME/**", "$APPDATA/**", "$APPLOCALDATA/**", "$DOCUMENT/**", "$DOWNLOAD/**", "$DESKTOP/**", "**"]
+      },
+      "path": {
+        "all": true
+      },
+      "globalShortcut": {
+        "all": true
+      },
+      "process": {
+        "all": true,
+        "exit": true,
+        "relaunch": true
       }
     },
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.s5cmdgui.app",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "resources": [],
+      "externalBin": [],
+      "copyright": "MIT License",
+      "category": "DeveloperTool",
+      "shortDescription": "Fast S3 file browser powered by s5cmd",
+      "longDescription": "A graphical user interface for s5cmd, providing fast S3 file browsing, uploads, and downloads with parallel transfers.",
+      "deb": {
+        "depends": []
+      },
+      "macOS": {
+        "frameworks": [],
+        "minimumSystemVersion": "",
+        "exceptionDomain": "",
+        "signingIdentity": null,
+        "providerShortName": null,
+        "entitlements": null
+      },
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https://asset.localhost"
     },
     "windows": [
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "s5cmd-gui",
-        "width": 800,
-        "height": 600
+        "title": "S5cmd GUI",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
       }
     ]
   }

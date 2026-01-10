@@ -1,31 +1,44 @@
 {
   "name": "s5cmd-gui",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@tauri-apps/api": "^1.4.0",
-    "@aperturerobotics/chonky": "0.2.6",
-    "@aperturerobotics/chonky-icon-fontawesome": "0.2.2",
-    "path-browserify": "^1.0.1"
+    "@tauri-apps/api": "^1.5.0",
+    "@aperturerobotics/chonky": "^0.3.1",
+    "@aperturerobotics/chonky-icon-fontawesome": "^0.3.1",
+    "path-browserify": "^1.0.1",
+    "zustand": "^4.4.0",
+    "react-hot-toast": "^2.4.1",
+    "date-fns": "^3.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@types/path-browserify": "^1.0.0",
-    "@vitejs/plugin-react": "^4.0.3",
-    "typescript": "^5.0.2",
-    "vite": "^4.4.4",
-  
-    "@tauri-apps/cli": "^1.4.0",
-    "prettier": "3.0.0"
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/path-browserify": "^1.0.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "@tauri-apps/cli": "^1.5.8",
+    "@playwright/test": "^1.40.1",
+    "prettier": "^3.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
   }
 }
