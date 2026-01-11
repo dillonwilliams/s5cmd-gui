@@ -28,6 +28,10 @@ fn main() {
                 std::fs::create_dir_all(&dir).ok();
                 info!("App data directory: {:?}", dir);
             }
+
+            // Initialize s5cmd sidecar path
+            s5cmd::init_sidecar_path(&app.handle());
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -70,7 +70,9 @@
         "icons/icon.ico"
       ],
       "resources": [],
-      "externalBin": [],
+      "externalBin": [
+        "binaries/s5cmd"
+      ],
       "copyright": "MIT License",
       "category": "DeveloperTool",
       "shortDescription": "Fast S3 file browser powered by s5cmd",

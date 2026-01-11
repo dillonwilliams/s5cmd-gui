@@ -1,16 +1,19 @@
 use log::{debug, error, info, warn};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 use crate::profiles::{AuthType, Profile};
 use crate::settings::Settings;
 use crate::sso;
+
+// Store the resolved sidecar path
+static SIDECAR_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct S3Object {
@@ -68,6 +71,94 @@ struct OperationState {
     cancelled: bool,
 }
 
+/// Initialize the sidecar path. Call this during app setup.
+pub fn init_sidecar_path(app_handle: &tauri::AppHandle) {
+    if SIDECAR_PATH.get().is_some() {
+        return;
+    }
+
+    // Try to resolve the sidecar path
+    let sidecar_path = resolve_sidecar_path(app_handle);
+
+    if let Some(path) = sidecar_path {
+        info!("s5cmd sidecar path: {:?}", path);
+        let _ = SIDECAR_PATH.set(path);
+    } else {
+        warn!("Could not find bundled s5cmd, will try system PATH");
+    }
+}
+
+fn resolve_sidecar_path(app_handle: &tauri::AppHandle) -> Option<PathBuf> {
+    // Get the path to the current executable
+    let exe_path = std::env::current_exe().ok()?;
+    let exe_dir = exe_path.parent()?;
+
+    // Determine the sidecar binary name based on platform
+    #[cfg(target_os = "windows")]
+    let sidecar_name = "s5cmd.exe";
+
+    #[cfg(not(target_os = "windows"))]
+    let sidecar_name = "s5cmd";
+
+    // In development, the sidecar might be in different locations
+    // Try the standard Tauri sidecar location first
+    let possible_paths = vec![
+        // Production: next to the executable
+        exe_dir.join(sidecar_name),
+        // macOS app bundle
+        exe_dir.join("../Resources").join(sidecar_name),
+        // Development: in the target directory
+        exe_dir.join("binaries").join(sidecar_name),
+        // Tauri's sidecar location during development
+        {
+            let mut path = exe_dir.to_path_buf();
+            // Go up to find src-tauri/binaries
+            for _ in 0..5 {
+                path = path.join("..").join("src-tauri").join("binaries").join(sidecar_name);
+                if path.exists() {
+                    break;
+                }
+                path = path.parent().unwrap_or(&path).parent().unwrap_or(&path).to_path_buf();
+            }
+            path
+        },
+    ];
+
+    for path in possible_paths {
+        let canonical = path.canonicalize().ok();
+        if let Some(p) = canonical {
+            if p.exists() && p.is_file() {
+                return Some(p);
+            }
+        }
+        if path.exists() && path.is_file() {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+/// Get the path to the s5cmd binary
+pub fn get_s5cmd_path(custom_path: Option<&str>) -> String {
+    // First check if user specified a custom path
+    if let Some(path) = custom_path {
+        if !path.is_empty() {
+            return path.to_string();
+        }
+    }
+
+    // Then check if we have a bundled sidecar
+    if let Some(path) = SIDECAR_PATH.get() {
+        if path.exists() {
+            return path.to_string_lossy().to_string();
+        }
+    }
+
+    // Fall back to system PATH
+    "s5cmd".to_string()
+}
+
 pub struct S5cmdRunner {
     profile: Profile,
     settings: Settings,
@@ -78,8 +169,15 @@ impl S5cmdRunner {
         Self { profile, settings }
     }
 
+    fn get_binary_path(&self) -> String {
+        get_s5cmd_path(self.settings.s5cmd_path.as_deref())
+    }
+
     fn build_command(&self) -> Result<Command, String> {
-        let mut cmd = Command::new(self.settings.get_s5cmd_binary());
+        let binary = self.get_binary_path();
+        debug!("Using s5cmd binary: {}", binary);
+
+        let mut cmd = Command::new(&binary);
 
         // Set environment variables based on auth type
         match &self.profile.auth {
@@ -140,7 +238,10 @@ impl S5cmdRunner {
 
         debug!("Running s5cmd ls for buckets");
 
-        let output = cmd.output().map_err(|e| format!("Failed to execute s5cmd: {}", e))?;
+        let output = cmd.output().map_err(|e| {
+            let binary = self.get_binary_path();
+            format!("Failed to execute s5cmd ({}): {}. Make sure s5cmd is installed.", binary, e)
+        })?;
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr);
@@ -283,7 +384,6 @@ impl S5cmdRunner {
 
     pub fn create_folder(&self, path: &str) -> Result<(), String> {
         // s5cmd doesn't have a direct mkdir, but we can create an empty object with a trailing slash
-        // or use a placeholder file
         let folder_path = if path.ends_with('/') {
             path.to_string()
         } else {
@@ -532,13 +632,13 @@ fn parse_s5cmd_error(error: &str) -> String {
     error.to_string()
 }
 
-pub fn get_s5cmd_version(s5cmd_path: Option<&str>) -> Result<String, String> {
-    let binary = s5cmd_path.unwrap_or("s5cmd");
+pub fn get_s5cmd_version(custom_path: Option<&str>) -> Result<String, String> {
+    let binary = get_s5cmd_path(custom_path);
 
-    let output = Command::new(binary)
+    let output = Command::new(&binary)
         .arg("version")
         .output()
-        .map_err(|e| format!("Failed to run s5cmd: {}", e))?;
+        .map_err(|e| format!("Failed to run s5cmd ({}): {}", binary, e))?;
 
     if output.status.success() {
         let version = String::from_utf8_lossy(&output.stdout);
@@ -546,4 +646,10 @@ pub fn get_s5cmd_version(s5cmd_path: Option<&str>) -> Result<String, String> {
     } else {
         Err("Failed to get s5cmd version".to_string())
     }
+}
+
+/// Check if s5cmd is available
+pub fn check_s5cmd_available() -> Result<String, String> {
+    let path = get_s5cmd_path(None);
+    get_s5cmd_version(Some(&path))
 }
