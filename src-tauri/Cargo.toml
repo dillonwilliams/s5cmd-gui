@@ -1,24 +1,39 @@
 [package]
 name = "s5cmd-gui"
-version = "0.0.0"
+version = "1.0.0"
 description = "GUI for the s5cmd tool, which makes S3/compatible uploads/downloads much faster"
 authors = ["Dillon Williams"]
 license = "MIT"
-repository = ""
+repository = "https://github.com/dillonwilliams/s5cmd-gui"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [build-dependencies]
-tauri-build = { version = "1.4", features = [] }
+tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.4", features = [ "dialog-save", "dialog-open", "shell-open"] }
+tauri = { version = "1.5", features = [
+    "dialog-save",
+    "dialog-open",
+    "shell-open",
+    "shell-execute",
+    "process-command-api",
+    "fs-all",
+    "path-all",
+    "global-shortcut-all"
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tempfile = "3.7.0"
+tempfile = "3.9"
+keyring = "2.2"
+tokio = { version = "1.35", features = ["full"] }
+log = "0.4"
+fern = { version = "0.6", features = ["colored"] }
+chrono = "0.4"
+dirs = "5.0"
+uuid = { version = "1.6", features = ["v4"] }
+regex = "1.10"
+thiserror = "1.0"
+lazy_static = "1.4"
 
 [features]
-# this feature is used for production builds or when `devPath` points to the filesystem
-# DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
