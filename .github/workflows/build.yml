@@ -31,7 +31,7 @@ jobs:
             -e MINIO_ROOT_PASSWORD=minioadmin \
             minio/minio:RELEASE.2024-01-01T16-36-33Z \
             server /data --console-address ":9001"
-          
+
       - name: Wait for MinIO to be ready
         run: |
           echo "Waiting for MinIO to be ready..."
